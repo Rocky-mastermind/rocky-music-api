@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "name": "rocky-music-api",
   "rewrites": [
     {
       "source": "/rocky",
