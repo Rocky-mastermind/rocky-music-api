@@ -2,11 +2,17 @@
 
 **TikTok Music Search API** — by **Rocky**
 
+> GitHub: https://github.com/Rocky-mastermind/rocky-music-api
+
+---
+
 ## 🚀 Deploy on Vercel
 
-1. Fork/upload this repo to GitHub
-2. Go to [vercel.com](https://vercel.com) → New Project → Import your repo
-3. Deploy — done!
+1. Go to [vercel.com](https://vercel.com) → New Project
+2. Import from GitHub: `Rocky-mastermind/rocky-music-api`
+3. Deploy — done! Your API is live.
+
+---
 
 ## 📡 API Usage
 
@@ -14,14 +20,14 @@
 ```
 GET /api/rocky?keyword=YOUR_SEARCH
 ```
-or shortcut:
+Shortcut:
 ```
 GET /rocky?keyword=YOUR_SEARCH
 ```
 
 ### Example
 ```
-https://your-project.vercel.app/rocky?keyword=lofi music
+https://rocky-music-api.vercel.app/rocky?keyword=lofi music
 ```
 
 ### Response
@@ -30,7 +36,7 @@ https://your-project.vercel.app/rocky?keyword=lofi music
   {
     "musicUrl": "https://...",
     "hdMusicUrl": "https://...",
-    "title": "lofi music chill beats",
+    "title": "lofi chill beats",
     "cover": "https://...",
     "author": "username",
     "duration": 60,
@@ -38,10 +44,28 @@ https://your-project.vercel.app/rocky?keyword=lofi music
     "likes": 5000,
     "musicTitle": "Song Name",
     "musicAuthor": "Artist Name",
-    "musicCover": "https://..."
+    "musicCover": "https://...",
+    "apiAuthor": "Rocky",
+    "apiRepo": "https://github.com/Rocky-mastermind/rocky-music-api"
   }
 ]
 ```
 
+---
+
+## 📁 Project Files
+
+| File | Description |
+|------|-------------|
+| `api/rocky.js` | Main API handler |
+| `public/index.html` | Web UI |
+| `baseApiUrl.json` | Base URL config (used by bot) |
+| `video.js` | Facebook bot command |
+| `vercel.json` | Vercel routing config |
+
+---
+
 ## 👤 Author
-Made with ❤️ by **Rocky**
+
+**Rocky** — All rights reserved © 2025  
+GitHub: [Rocky-mastermind](https://github.com/Rocky-mastermind)
