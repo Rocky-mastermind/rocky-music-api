@@ -393,6 +393,17 @@ nav{
 }
 .dl-row a:hover{transform:translateY(-2px);filter:brightness(1.1)}
 .dl-hd{background:linear-gradient(135deg,#1db954,#00e5a0);color:#000;box-shadow:0 6px 18px #1db95440}
+.dl-direct{
+  width:100%;margin-top:10px;padding:13px;border-radius:11px;
+  background:linear-gradient(135deg,#a855f7,#6366f1);
+  color:#fff;font-weight:700;font-size:.85rem;
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 6px 20px #a855f730;
+  transition:transform .2s,filter .2s;
+}
+.dl-direct:hover{transform:translateY(-2px);filter:brightness(1.1)}
+.dl-direct.done{background:linear-gradient(135deg,#1db954,#00e5a0);color:#000}
 .dl-sd{background:var(--card2);color:var(--text);border:1px solid var(--border)}
 
 /* ── Footer ── */
@@ -536,9 +547,10 @@ footer a:hover{text-decoration:underline}
       <div class="v-music" id="mMusic"></div>
       <div class="v-meta" id="mMeta"></div>
       <div class="dl-row">
-        <a id="dlSD" class="dl-sd" href="#" target="_blank">⬇ Normal</a>
-        <a id="dlHD" class="dl-hd" href="#" target="_blank">⬇ HD</a>
+        <a id="dlSD" class="dl-sd" href="#" target="_blank" download>⬇ Normal</a>
+        <a id="dlHD" class="dl-hd" href="#" target="_blank" download>⬇ HD Download</a>
       </div>
+      <button id="dlDirect" class="dl-direct">📥 Direct Download</button>
     </div>
   </div>
 </div>
@@ -658,17 +670,55 @@ function render(videos,q){
   });
 }
 
+let currentVideo = null;
+
 function openModal(v){
+  currentVideo = v;
   mVideo.src=v.hdMusicUrl||v.musicUrl||'';
   mTitle.textContent=v.title||'Untitled';
   mAuthor.textContent='@'+(v.author||'unknown');
   mMusic.textContent=v.musicTitle?`🎼 ${v.musicTitle}${v.musicAuthor?' — '+v.musicAuthor:''}` :'';
   mMeta.innerHTML=`<span>▶ ${fmt(v.plays)}</span><span>❤ ${fmt(v.likes)}</span>`;
   dlSD.href=v.musicUrl||'#';
+  dlSD.download=v.title||'music';
   dlHD.href=v.hdMusicUrl||v.musicUrl||'#';
+  dlHD.download=v.title||'music';
+  const dlDirect=document.getElementById('dlDirect');
+  dlDirect.textContent='📥 Direct Download';
+  dlDirect.className='dl-direct';
   overlay.classList.add('open');
   document.body.style.overflow='hidden';
 }
+
+// Direct download — fetch as blob so browser saves it
+document.getElementById('dlDirect').addEventListener('click', async function(){
+  if(!currentVideo) return;
+  const url = currentVideo.hdMusicUrl || currentVideo.musicUrl;
+  if(!url){alert('No download URL available');return}
+  this.textContent='⏳ Downloading…';
+  this.disabled=true;
+  try{
+    const res = await fetch(url, {mode:'cors'});
+    if(!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (currentVideo.title||'rocky_music').replace(/[^\w\s]/g,'').trim() + '.mp4';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    this.textContent='✅ Downloaded!';
+    this.className='dl-direct done';
+    setTimeout(()=>{this.textContent='📥 Direct Download';this.className='dl-direct';this.disabled=false;},3000);
+  }catch(e){
+    // fallback: open in new tab
+    window.open(url,'_blank');
+    this.textContent='📥 Direct Download';
+    this.className='dl-direct';
+    this.disabled=false;
+  }
+});
 
 function closeModal(){
   overlay.classList.remove('open');
