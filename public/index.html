@@ -394,16 +394,17 @@ nav{
 .dl-row a:hover{transform:translateY(-2px);filter:brightness(1.1)}
 .dl-hd{background:linear-gradient(135deg,#1db954,#00e5a0);color:#000;box-shadow:0 6px 18px #1db95440}
 .dl-direct{
-  width:100%;margin-top:10px;padding:13px;border-radius:11px;
-  background:linear-gradient(135deg,#a855f7,#6366f1);
-  color:#fff;font-weight:700;font-size:.85rem;
+  width:100%;margin-top:14px;padding:15px;border-radius:13px;
+  background:linear-gradient(135deg,#1db954,#00e5a0);
+  color:#000;font-weight:800;font-size:.9rem;
   border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 6px 20px #a855f730;
-  transition:transform .2s,filter .2s;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 8px 24px #1db95440;
+  transition:transform .2s,box-shadow .2s,filter .2s;
+  letter-spacing:.2px;
 }
-.dl-direct:hover{transform:translateY(-2px);filter:brightness(1.1)}
-.dl-direct.done{background:linear-gradient(135deg,#1db954,#00e5a0);color:#000}
+.dl-direct:hover{transform:translateY(-2px);box-shadow:0 12px 32px #1db95460;filter:brightness(1.08)}
+.dl-direct:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .dl-sd{background:var(--card2);color:var(--text);border:1px solid var(--border)}
 
 /* ── Footer ── */
@@ -546,11 +547,8 @@ footer a:hover{text-decoration:underline}
       <div class="v-author" id="mAuthor"></div>
       <div class="v-music" id="mMusic"></div>
       <div class="v-meta" id="mMeta"></div>
-      <div class="dl-row">
-        <a id="dlSD" class="dl-sd" href="#" target="_blank" download>⬇ Normal</a>
-        <a id="dlHD" class="dl-hd" href="#" target="_blank" download>⬇ HD Download</a>
-      </div>
-      <button id="dlDirect" class="dl-direct">📥 Direct Download</button>
+      <button id="dlDirect" class="dl-direct">📥 Gallery তে Save করুন</button>
+      <div id="dlStatus" style="display:none;text-align:center;font-size:.78rem;color:var(--green);margin-top:10px;"></div>
     </div>
   </div>
 </div>
@@ -674,73 +672,121 @@ let currentVideo = null;
 
 function openModal(v){
   currentVideo = v;
-  mVideo.src=v.hdMusicUrl||v.musicUrl||'';
-  mTitle.textContent=v.title||'Untitled';
-  mAuthor.textContent='@'+(v.author||'unknown');
-  mMusic.textContent=v.musicTitle?`🎼 ${v.musicTitle}${v.musicAuthor?' — '+v.musicAuthor:''}` :'';
-  mMeta.innerHTML=`<span>▶ ${fmt(v.plays)}</span><span>❤ ${fmt(v.likes)}</span>`;
-  dlSD.href=v.musicUrl||'#';
-  dlSD.download=v.title||'music';
-  dlHD.href=v.hdMusicUrl||v.musicUrl||'#';
-  dlHD.download=v.title||'music';
-  const dlDirect=document.getElementById('dlDirect');
-  dlDirect.textContent='📥 Direct Download';
-  dlDirect.className='dl-direct';
+  mVideo.src = v.hdMusicUrl || v.musicUrl || '';
+  mTitle.textContent = v.title || 'Untitled';
+  mAuthor.textContent = '@' + (v.author || 'unknown');
+  mMusic.textContent = v.musicTitle ? `🎼 ${v.musicTitle}${v.musicAuthor?' — '+v.musicAuthor:''}` : '';
+  mMeta.innerHTML = `<span>▶ ${fmt(v.plays)}</span><span>❤ ${fmt(v.likes)}</span>`;
+  const dlDirect = document.getElementById('dlDirect');
+  const dlStatus = document.getElementById('dlStatus');
+  dlDirect.textContent = '📥 Gallery তে Save করুন';
+  dlDirect.disabled = false;
+  dlDirect.style.background = 'linear-gradient(135deg,#1db954,#00e5a0)';
+  dlStatus.style.display = 'none';
   overlay.classList.add('open');
-  document.body.style.overflow='hidden';
+  document.body.style.overflow = 'hidden';
 }
 
-// Direct download — fetch as blob so browser saves it
+// ── Gallery Save (blob download) ──────────────────────────────
 document.getElementById('dlDirect').addEventListener('click', async function(){
-  if(!currentVideo) return;
+  if (!currentVideo) return;
+
   const url = currentVideo.hdMusicUrl || currentVideo.musicUrl;
-  if(!url){alert('No download URL available');return}
-  this.textContent='⏳ Downloading…';
-  this.disabled=true;
-  try{
-    const res = await fetch(url, {mode:'cors'});
-    if(!res.ok) throw new Error('fetch failed');
-    const blob = await res.blob();
+  if (!url) { alert('Download link নেই'); return; }
+
+  const btn = this;
+  const status = document.getElementById('dlStatus');
+  btn.textContent = '⏳ Downloading…';
+  btn.disabled = true;
+  btn.style.background = 'linear-gradient(135deg,#555,#333)';
+  status.style.display = 'block';
+  status.textContent = 'ডাউনলোড হচ্ছে, একটু অপেক্ষা করুন…';
+
+  // Try blob fetch first (saves directly to gallery on mobile)
+  try {
+    const response = await fetch(url, { method: 'GET' });
+    if (!response.ok) throw new Error('fetch failed ' + response.status);
+
+    const contentType = response.headers.get('content-type') || 'video/mp4';
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const fileName = (currentVideo.title || 'rocky_music')
+      .replace(/[<>:"/\\|?*]/g, '')
+      .trim()
+      .substring(0, 60) + '.mp4';
+
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (currentVideo.title||'rocky_music').replace(/[^\w\s]/g,'').trim() + '.mp4';
+    a.href = blobUrl;
+    a.download = fileName;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-    this.textContent='✅ Downloaded!';
-    this.className='dl-direct done';
-    setTimeout(()=>{this.textContent='📥 Direct Download';this.className='dl-direct';this.disabled=false;},3000);
-  }catch(e){
-    // fallback: open in new tab
-    window.open(url,'_blank');
-    this.textContent='📥 Direct Download';
-    this.className='dl-direct';
-    this.disabled=false;
+
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+    btn.textContent = '✅ Saved!';
+    btn.style.background = 'linear-gradient(135deg,#1db954,#00e5a0)';
+    status.textContent = '✅ "' + fileName + '" gallery তে save হয়েছে!';
+    status.style.color = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = '📥 Gallery তে Save করুন';
+      btn.disabled = false;
+      status.style.display = 'none';
+    }, 4000);
+
+  } catch (err) {
+    console.warn('Blob fetch failed, trying direct link:', err);
+
+    // Fallback: proxy through our own API to bypass CORS
+    try {
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+      const response2 = await fetch(proxyUrl);
+      if (!response2.ok) throw new Error('proxy failed');
+
+      const blob2 = await response2.blob();
+      const blobUrl2 = URL.createObjectURL(blob2);
+      const fileName2 = (currentVideo.title || 'rocky_music')
+        .replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 60) + '.mp4';
+
+      const a2 = document.createElement('a');
+      a2.href = blobUrl2;
+      a2.download = fileName2;
+      document.body.appendChild(a2);
+      a2.click();
+      document.body.removeChild(a2);
+      setTimeout(() => URL.revokeObjectURL(blobUrl2), 5000);
+
+      btn.textContent = '✅ Saved!';
+      btn.style.background = 'linear-gradient(135deg,#1db954,#00e5a0)';
+      status.textContent = '✅ Gallery তে save হয়েছে!';
+      setTimeout(() => {
+        btn.textContent = '📥 Gallery তে Save করুন';
+        btn.disabled = false;
+        status.style.display = 'none';
+      }, 4000);
+
+    } catch (err2) {
+      // Last fallback: open in new tab (user can long-press save on mobile)
+      window.open(url, '_blank');
+      btn.textContent = '📥 Gallery তে Save করুন';
+      btn.disabled = false;
+      btn.style.background = 'linear-gradient(135deg,#1db954,#00e5a0)';
+      status.textContent = '⚠️ নতুন tab এ খুলেছে — ভিডিওতে long press করে Save করুন';
+      status.style.color = 'var(--gold)';
+      setTimeout(() => { status.style.display = 'none'; }, 6000);
+    }
   }
-});
-
-function closeModal(){
-  overlay.classList.remove('open');
-  mVideo.pause();mVideo.removeAttribute('src');mVideo.load();
-  document.body.style.overflow='';
-}
-
-mClose.addEventListener('click',closeModal);
-overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-searchBtn.addEventListener('click',()=>search(searchInput.value));
-searchInput.addEventListener('keydown',e=>{if(e.key==='Enter')search(searchInput.value)});
-document.querySelectorAll('.chip').forEach(c=>{
-  c.addEventListener('click',()=>{searchInput.value=c.dataset.q;search(c.dataset.q)});
 });
 
 function copyText(btn,text){
   navigator.clipboard.writeText(text).then(()=>{
-    const orig=btn.textContent;btn.textContent='Copied!';
-    setTimeout(()=>btn.textContent=orig,1500);
+    const orig=btn.textContent; btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent=orig, 1500);
   });
 }
+
 </script>
 </body>
 </html>
