@@ -648,7 +648,7 @@ function render(videos,q){
     card.style.animationDelay=(i*.04)+'s';
     card.innerHTML=`
       <div class="thumb">
-        <img src="${v.cover||'https://placehold.co/300x300/0c1a16/1db954?text=🎵'}" alt="" loading="lazy" onerror="this.src='https://placehold.co/300x300/0c1a16/1db954?text=🎵'"/>
+        <img src="${v.cover||`https://i.ytimg.com/vi/${v.youtubeUrl?.split('v=')[1]||''}/hqdefault.jpg`||'https://placehold.co/300x300/0c1a16/1db954?text=🎵'}" alt="" loading="lazy" onerror="this.src='https://placehold.co/300x300/0c1a16/1db954?text=🎵'"/>
         <span class="src-badge">🎵 MUSIC</span>
         ${v.duration?`<span class="dur-badge">${dur(v.duration)}</span>`:''}
         <div class="play-btn"><span>▶</span></div>
@@ -657,7 +657,7 @@ function render(videos,q){
         <div class="v-title">${v.title||'Untitled'}</div>
         <div class="v-author">@${v.author||'unknown'}</div>
         ${v.musicTitle?`<div class="v-music">🎼 ${v.musicTitle}</div>`:''}
-        <div class="v-meta"><span>▶ ${fmt(v.plays)}</span><span>❤ ${fmt(v.likes)}</span></div>
+        <div class="v-meta">${v.duration?`<span>⏱ ${dur(v.duration)}</span>`:''}<span>▶ ${v.plays||'-'}</span></div>
       </div>
     `;
     const open=()=>openModal(v);
@@ -672,11 +672,17 @@ let currentVideo = null;
 
 function openModal(v){
   currentVideo = v;
-  mVideo.src = v.hdMusicUrl || v.musicUrl || '';
+
+  // Use proxyUrl for video playback (avoids CORS issues)
+  const playUrl = v.hdProxyUrl || v.proxyUrl || v.hdMusicUrl || v.musicUrl || '';
+  mVideo.src = playUrl;
+  mVideo.load();
+
   mTitle.textContent = v.title || 'Untitled';
   mAuthor.textContent = '@' + (v.author || 'unknown');
-  mMusic.textContent = v.musicTitle ? `🎼 ${v.musicTitle}${v.musicAuthor?' — '+v.musicAuthor:''}` : '';
-  mMeta.innerHTML = `<span>▶ ${fmt(v.plays)}</span><span>❤ ${fmt(v.likes)}</span>`;
+  mMusic.textContent = v.musicTitle ? `🎼 ${v.musicTitle}` : '';
+  mMeta.innerHTML = v.duration ? `<span>⏱ ${dur(v.duration)}</span><span>▶ ${v.plays||'-'}</span>` : '';
+
   const dlDirect = document.getElementById('dlDirect');
   const dlStatus = document.getElementById('dlStatus');
   dlDirect.textContent = '📥 Gallery তে Save করুন';
@@ -691,7 +697,8 @@ function openModal(v){
 document.getElementById('dlDirect').addEventListener('click', async function(){
   if (!currentVideo) return;
 
-  const url = currentVideo.hdMusicUrl || currentVideo.musicUrl;
+  // Use proxy URL so server fetches it — avoids CORS, saves to gallery
+  const url = currentVideo.hdProxyUrl || currentVideo.proxyUrl || currentVideo.hdMusicUrl || currentVideo.musicUrl;
   if (!url) { alert('Download link নেই'); return; }
 
   const btn = this;
